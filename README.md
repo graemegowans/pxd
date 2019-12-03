@@ -4,7 +4,7 @@ Run every month to generate a new file from the ProcXed reports.
 
 # Moving to access format
 
-After processing, open csv file and:
+After processing report, open csv file and:
 
 * change any title flags as needed manually (get rid of edition)
 * check for encoding issues
