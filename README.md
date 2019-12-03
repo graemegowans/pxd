@@ -24,3 +24,5 @@ add key automatically > choose name = "tblPubs"
 * add rescheduled pubs are added as needed
 * upload using FileZilla
 * check website has updated
+
+Line from github
