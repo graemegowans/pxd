@@ -132,7 +132,7 @@ new_pubs %<>%
          Revised = NA, 
          Synopsis = glue("<p>{Synopsis}</p>"), 
          DatePublished = format(DatePublished, "%d/%m/%y")) %>% 
-  select(DatePublished, Title, HealthTopic, Synopsis, ContactName, 
+  select(title_flag, DatePublished, Title, HealthTopic, Synopsis, ContactName, 
          RescheduledTo, Revised, NotSet)
 
 
