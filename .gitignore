@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 /data/archived
+/data/email_addresses.csv
 /output
 /scripts/archived
 /scripts/development
