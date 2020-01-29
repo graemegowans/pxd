@@ -31,29 +31,62 @@ library(fuzzyjoin)
 library(glue)
 
 # Define filepaths
-filename <- "Dec-19"
+# use date in filename
+filename <- "Feb-20"
+
+#use one of these to define path
 location <- file.path("//path", "to", "procxed", "output")
+location <- "F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/"
 
 # Set limit for showing full date
-date_limit <- "2020-02-01"
+date_limit <- "2020-05-01"
 
 # Get lookup table
-lookup <- read_csv("data/ISD_lookup_topics.csv")
+lookup <- read_csv("data/ISD_lookup_topics.csv", 
+                   col_types = "cc")
 
+### 2 check new and changed dates ----
 
-### 2 Read in Data ----
+#this comes from a different ProcXed report
+date_changed <- read_xlsx(glue("{location}/ISD Dates Changed ",
+                               "{filename}.xlsx")) %>% 
+                clean_names() %>% 
+                select(-statistics_type, -url_address)  
+                mutate(previous_publication_date = )
+  
+date_changed <- date_changed %>% 
+                mutate(prev = if_else(is.na(ymd(previous_publication_date)), 
+                                      dmy(paste0("01-", previous_publication_date)),
+                                      ymd(previous_publication_date))) %>% 
+                mutate(curr = if_else(is.na(ymd(current_publication_date)), 
+                                      dmy(paste0("01-", current_publication_date)),
+                                      ymd(current_publication_date)))
+
+#has date within date limit changed?
+date_changed %>% filter(prev < date_limit)
+
+#is new date in the past?
+date_changed %>% filter(curr < now())
+
+#new pubs within date limit?
+date_changed %>% filter(previous_publication_date == "NEWLY ADDED" &
+                          current_publication_date < date_limit)
+
+#any issues here might need followed up
+
+### 3 Read in Data ----
 
 # Read the data - these are files from ProcXed report
 # Rename column names for Access database
 new_pubs <- read_xlsx(glue("{location}/ISD Forthcoming Publications ",
-                           "{filename}.xlsx")) %>%
+                           "{filename}.xlsx"), col_types = "text") %>%
             rename(DatePublished = `Publication Date`, 
                    Title = `Publication Series`, 
                    Synopsis = `Synopsis`, 
                    ContactName = `Contact Details`) %>% 
             select(DatePublished, Title, Synopsis, ContactName)
 
-### 3 Formatting Dates ----
+### 4 Formatting Dates ----
 
 # Change all dates into dmy format
 # If date doesn't parse as dmy (e.g. those in MM-YYY format) then add "01-" to the 
@@ -75,7 +108,12 @@ new_pubs %<>%
 new_pubs %<>% 
   mutate(NotSet = if_else(DatePublished < date_limit, "", "1"))
 
-### 4 Remove Emails ----
+#check all dates are Tuesday, show those that aren't
+new_pubs %>% 
+  mutate(day_of_week = wday(DatePublished, label = TRUE)) %>% 
+  filter(DatePublished < date_limit & day_of_week != "Tue")
+
+### 5 Remove Emails ----
 
 # Remove the "\r\n" prefix from telephone numbers
 # Remove email addresses
@@ -86,7 +124,7 @@ new_pubs %<>%
   mutate(ContactName = gsub("\r\ne-mail: (?:.*?)\r\n", "", ContactName)) %>% 
   mutate(ContactName = gsub("\r\n", " ", ContactName))
 
-### 5 Health Topic Lookup ----
+### 6 Health Topic Lookup ----
 
 # Remove brackets from (CAMHS) for matching
 new_pubs %<>% mutate(Title = str_replace_all(Title, "\\(CAMHS\\)", "CAMHS"))
@@ -106,7 +144,17 @@ count(new_pubs, HealthTopic) %>% print(n = Inf)
 
 new_pubs %>% filter(is.na(HealthTopic)) %>% select(Title)
 
-# Manually add this in to the lookup file and rerun
+#new topics to add
+topic_to_add <- tibble(TitleCode = "Title to add",
+                       HealthTopic = "Health-Topic")
+
+#add rows to lookup table
+lookup <- bind_rows(lookup, topic_to_add)
+
+#overwrite lookup table for next time
+write_csv(lookup, "data/ISD_lookup_topics.csv")
+
+######### remember to rerun script to add new topics ##############
 
 # Process the title to get rid of the edition (e.g. October 2020 release)
 # If only 1 comma, then take text before comma
@@ -119,7 +167,7 @@ new_pubs %<>%
               title_flag = if_else(comma_count > 1, "TRUE", "")) %>% 
       select(-c(comma_count, series, edition))
 
-### 6 General Formatting ----
+### 7 General Formatting ----
 
 # Add rescheduled_to and revised columns as NA
 # these will need to be manually adjusted
@@ -136,7 +184,7 @@ new_pubs %<>%
          RescheduledTo, Revised, NotSet)
 
 
-### 7 Add Rescheduled Publications ----
+### 8 Add Rescheduled Publications ----
 
 # Remember to add reason for delay in Synopsis
 # There should be an entry already for the rescheduled date
@@ -158,7 +206,7 @@ rescheduled_pubs <-
 new_pubs <- bind_rows(new_pubs, rescheduled_pubs)
 
 
-### 8 Remove Duplicate ED Weekly Publications ----
+### 9 Remove Duplicate ED Weekly Publications ----
 
 # Make a key of DatePublished, Title and Synopsis
 # Keep only the distinct ones
@@ -176,7 +224,7 @@ new_pubs %<>%
   distinct(dupkey, .keep_all = TRUE) %>%
   select(-dupkey)
 
-### 9 Save as .csv ----
+### 10 Save as .csv ----
 
 # Export file as .csv
 # Use write.csv as write_csv sometimes gives weird encoding in access
