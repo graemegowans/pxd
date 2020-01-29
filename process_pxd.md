@@ -20,9 +20,11 @@ prepare files for processing
 set up R
 ========
 
+-   install R and RStudio
 -   download the project from Github: <https://github.com/graemegowans/pxd>
 -   click on Green `Clone or Download` &gt; `Download Zip` &gt; choose location &gt; extract
 -   you could also clone it if you are already using Git
+-   this would let you make changes to the master script
 -   navigate to saved project location
 -   open project (`pxd.Rproj`) in RStudio
 -   in bottom right panel, click on `scripts` then `process_procxed_to_access.R`
