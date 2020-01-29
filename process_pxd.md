@@ -1,7 +1,7 @@
 process\_pxd\_output
 ================
 
-These instructions are for taking the ProcXed output and processing to web format.
+These instructions are for taking the monthly ProcXed output and processing to web format.
 
 prepare files for processing
 ============================
@@ -11,10 +11,11 @@ prepare files for processing
 -   export as Excel
 -   delete first row and delete theme column
 -   save at: `F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/`
--   filename format: `ISD Forthcoming Publications Feb-20.xlsx`
+-   use filename format, changing month/year: `ISD Forthcoming Publications Feb-20.xlsx`
 -   run ProcXed report - "Changes to Publication Date and Newly Added"
 -   export as Excel, delete first row
--   save as `ISD Dates Changed Feb-20.xlsx`
+-   save at: `F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/`
+-   use filename format, changing month/year: `ISD Dates Changed Feb-20.xlsx`
 
 set up R
 ========
@@ -22,7 +23,7 @@ set up R
 -   download the project from Github: <https://github.com/graemegowans/pxd>
 -   click on Green `Clone or Download` &gt; `Download Zip` &gt; choose location &gt; extract
 -   you could also clone it if you are already using Git
--   navigate to project location
+-   navigate to saved project location
 -   open project (`pxd.Rproj`) in RStudio
 -   in bottom right panel, click on `scripts` then `process_procxed_to_access.R`
 -   this will open in the main panel
@@ -34,7 +35,7 @@ process file
 install and load packages:
 --------------------------
 
-If this is the first time you have run this, you might need to install some packages. Copy the code below and paste into the `Console` - lower left panel in RStudio. You will only need to do this once.
+If this is the first time you have run this, you might need to install some packages. Copy the code below and paste into the Console - lower left panel in RStudio. You will only need to do this once.
 
 ``` r
 # install packages
@@ -74,12 +75,12 @@ define files/dates
 You need to change the file paths to match the file you just created:
 
 ``` r
-#define filepath
+#define file name and path
 filename <- "Feb-20"
 location <- file.path("//path", "to", "procxed", "output")
 ```
 
-Usually this will be something like:
+Usually location will be something like:
 
 ``` r
 location <- file.path("//F:", "PHI", "Publications", "Governance", "Pre Announcement", "Outputs", "2020")
@@ -99,7 +100,7 @@ location
 
     ## [1] "F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/"
 
-Add a date for when to show full or provisional dates - e.g. for showing all dates up to the end of March:
+Add a date for when to show full or provisional dates on the webpage - e.g. for showing all dates up to the end of March:
 
 ``` r
 # Set limit for showing full date
@@ -109,7 +110,7 @@ date_limit <- "2020-04-01"
 load health topics
 ------------------
 
-We have a running list of health topics for matching to publications, this is in the project folder (`data` folder) - load this into RStudio as:
+We have a running list of health topics for matching to publications, this is in the project folder (`data`, should have downloaded with project) - load this into RStudio as:
 
 ``` r
 # Get lookup table
@@ -117,7 +118,7 @@ lookup <- read_csv("data/ISD_lookup_topics.csv",
                    col_types = "cc")
 ```
 
-Check that it looks ok by typing the name of the object in the console (lookup) or clicking the name of the object in the upper right `environment` panel
+Check that it looks ok by typing the name of the object in the console (`lookup`) or clicking the name of the object in the upper right `environment` panel
 
 ``` r
 lookup
@@ -168,7 +169,7 @@ date_changed <- date_changed %>%
 
     ## mutate: new variable 'curr' with 19 unique values and 0% NA
 
-Can check publications as:
+Can check changes to publications as:
 
 ``` r
 #has date within date limit changed?
@@ -223,7 +224,7 @@ Any problems here might need followed up on.
 read forthcoming publications
 -----------------------------
 
-Load (`read_xlsx()`) the list of forthcoming publications saved from ProcXed. This uses the location and filename that we stored earlier. It also renames columns to match the Access files and drops only keeps (`select()`) the listed columns:
+Load (`read_xlsx()`) the list of forthcoming publications saved from ProcXed. This uses the location and filename that we stored earlier. It also renames columns to match the Access files and only keeps (`select()`) the listed columns:
 
 ``` r
 # Read the data - these are files from ProcXed report
@@ -263,7 +264,7 @@ new_pubs
 format publication dates
 ------------------------
 
-The publication dates are formatted to deal with finalized and provision dates. This uses the `mutate` function to change the `DatePublished` column and some `lubridate` functions to check date formats. If the date is not in the format Day-Month-Year (like Jan-20), then paste a "01-" at the start and try again. All dates should now be in the format (YYYY-MM-DD).
+The publication dates are formatted to deal with finalized and provisional dates. This uses the `mutate` function to change the `DatePublished` column and some `lubridate` functions to check date formats. If the date is not in the format Day-Month-Year (e.g. Jan-20 is not), then paste a "01-" at the start and try again. All dates should now be in the format (YYYY-MM-DD), but those that started with provisional dates (MM-YYYY) will all be dated the first of that month.
 
 Example:
 
@@ -371,7 +372,7 @@ new_pubs %<>%
 
     ## mutate: new variable 'NotSet' with 2 unique values and 0% NA
 
-Check if any of the publication dates up to the date limit are not Tuesday. These might need changed in ProcXed.
+Check if any of the publication dates up to the date limit are not Tuesday. These are probably typos and might need changed in ProcXed.
 
 ``` r
 #check all dates are Tuesday, show those that aren't
@@ -412,7 +413,7 @@ new_pubs %<>%
 add health topics
 -----------------
 
-The `lookup` object is used to merge health topics to publication title. Uses a `fuzzy_left_join()` with str\_detect to account for cases where there are dates in the title and therefore not a perfect match.
+The `lookup` object is used to merge health topics to publication title. Uses a `fuzzy_left_join()` with `str_detect` to account for cases where there are dates in the title and therefore not a perfect match.
 
 ``` r
 # Remove brackets from (CAMHS) for matching
@@ -436,7 +437,7 @@ new_pubs %<>% mutate(Title = str_replace_all(Title, "CAMHS", "\\(CAMHS\\)"))
 The number of pubs in each area are counted - if there are any NA then these need added to the lookup file.
 
 ``` r
-# Count numbers
+# count numbers per topic
 count(new_pubs, HealthTopic) %>% print(n = Inf)
 ```
 
@@ -465,24 +466,19 @@ count(new_pubs, HealthTopic) %>% print(n = Inf)
     ## 18 Waiting-Times                       36
     ## 19 Workforce                            3
 
+If any are in `NA` group, you can see what they are:
+
 ``` r
 ######### MANUALLY FIX MISSING HealthTopic VALUES ##############
 new_pubs %>% filter(is.na(HealthTopic)) %>% select(Title)
 ```
 
-    ## filter: removed all rows (100%)
-
-    ## select: dropped 6 variables (DatePublished, Synopsis, ContactName, NotSet, TitleCode, …)
-
-    ## # A tibble: 0 x 1
-    ## # ... with 1 variable: Title <chr>
-
-This can be added within R and a new version of the lookup file saved.
+These can be added within R and a new version of the lookup file saved. Use the series only, not the edition (the part with the date), so that it doesn't need added every release:
 
 ``` r
 # add this in to the lookup file and rerun from loading lookup
 #new topics to add
-topic_to_add <- tibble(TitleCode = "title to add",
+topic_to_add <- tibble(TitleCode = "series to add",
                        HealthTopic = "Health-Topic")
 
 #add rows
@@ -492,7 +488,7 @@ lookup <- bind_rows(lookup, topic_to_add)
 write_csv(lookup, "data/ISD_lookup_topics.csv")
 ```
 
-You then need to rerun from section 3 (load forthcoming pubs) to match the new health topic.
+You then need to rerun from section 3 (loading forthcoming pubs) to match these new health topics.
 
 clean up titles
 ---------------
@@ -525,7 +521,7 @@ new_pubs %<>%
 general formatting
 ------------------
 
-This adds extra columns for revised and rescheduled, adds html tags (
+This adds extra columns for revised and rescheduled publications, adds html tags (
 <p>
 &
 </p>
@@ -560,7 +556,7 @@ new_pubs %<>%
 adding rescheduled publications
 -------------------------------
 
-Publications that have been rescheduled need two entries in the list to ensure that they appear at the original and new dates. The new date will be in the procxed output, but the original date needs added back in. The this is added to the new\_pubs object using `bind_rows()`
+Publications that have been rescheduled need two entries in the list to ensure that they appear at the original and new dates. The new date will already be in the ProcXed output, but the original date needs added back in. The this is added to the new\_pubs object using `bind_rows()`. Remember to add a reason for delay in the synopsis.
 
 ``` r
 # Remember to add reason for delay in Synopsis
@@ -586,7 +582,7 @@ new_pubs <- bind_rows(new_pubs, rescheduled_pubs)
 remove duplicates
 -----------------
 
-Weekly publications will have multiple entries per month but only want ot display one of these. Make a key from Date, Title and Synopsis then extract the duplicated ones to check:
+Weekly publications will have multiple entries per month but only want to display one of these on the website. To indentify these, make a key from Date, Title and Synopsis then extract the duplicated ones to check:
 
 ``` r
 # Make a key of DatePublished, Title and Synopsis
@@ -636,7 +632,7 @@ dups
     ## # ... with 5 more variables: RescheduledTo <lgl>, Revised <lgl>,
     ## #   NotSet <chr>, dupkey <chr>, is_dup <lgl>
 
-These can then be removed:
+These can then be removed from `new_pubs`:
 
 ``` r
 # Remove these rows
@@ -652,6 +648,11 @@ new_pubs %<>%
 
     ## select: dropped one variable (dupkey)
 
+save output
+-----------
+
+### csv file
+
 The `new_pubs` object is then saved as a csv file to the same location as the ProcXed output. Use `write.csv()` as `write_csv()` was giving weird encoding issues in Access.
 
 ``` r
@@ -664,24 +665,29 @@ write.csv(new_pubs,
 ### END OF SCRIPT ###
 ```
 
+### R script
+
 You can save a dated version of the R script to this location as a record of changes that were made to e.g. rescheduled publications and health topics.
 
 Moving to Access format
 =======================
 
-After processing and exporting report, open csv file and:
+Access can't import .csv files. After processing and exporting report, open csv file and:
 
--   change any flagged titles as needed manually (get rid of edition)
--   delete the title\_flag column
--   check for encoding issues
+-   change any flagged titles as needed manually (to get rid of edition)
+-   delete the `title_flag` column
+-   check/fix any encoding issues - sometimes problems with symbols e.g. -, £, &, ", '
 -   save as .xls (Excel 97-03) for loading to Access
+-   you can delete the csv file now
 
 Go to: `F:\PHI\Publications\Governance\Pre Announcement\Updating ISD Forthcoming Webpages`
 
--   rename old ForthcomingPubs.mdb file as ForthcomingPubs\_\[archive\_date\]
+-   rename 'ForthcomingPubs.mdb' to 'ForthcomingPubs\_\[archive\_date\].mdb' (e.g. ForthcomingPubs\_20190127.mdb)
 -   open Access
--   make blank db named ForthcomingPubs
--   Then click New &gt; Import Table &gt; Choose File (change file type to Excel if it doesn't appear) &gt; Select has headers &gt; add to new Table &gt; check it looks ok &gt; add key automatically &gt; choose name = "tblPubs"
+-   click New (`Ctrl+ N`)
+-   make 'Blank database' (right hand side of screen)
+-   call it ForthcomingPubs and save to `Updating ISD Forthcoming Webpages` folder
+-   then: New &gt; Import Table &gt; select the .xls file made above (change file type to Excel if it doesn't appear) &gt; select "has headers" &gt; add to new Table &gt; check it looks ok &gt; add key automatically &gt; choose name = "tblPubs"
 -   check rescheduled pubs are added and that all dates are formatted ok
 -   save and close
 -   upload using FileZilla FTP

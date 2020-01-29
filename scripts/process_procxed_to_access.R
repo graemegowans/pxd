@@ -137,7 +137,7 @@ new_pubs %<>% fuzzy_left_join(y = lookup,
 # Replace brackets for CAMHS
 new_pubs %<>% mutate(Title = str_replace_all(Title, "CAMHS", "\\(CAMHS\\)"))
 
-# Count numbers
+# count numbers per topic
 count(new_pubs, HealthTopic) %>% print(n = Inf)
 
 ######### MANUALLY FIX MISSING HealthTopic VALUES ##############
