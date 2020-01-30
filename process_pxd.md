@@ -24,11 +24,11 @@ set up R
 -   download the project from Github: <https://github.com/graemegowans/pxd>
 -   click on Green `Clone or Download` &gt; `Download Zip` &gt; choose location &gt; extract
 -   you could also clone it if you are already using Git
--   this would let you make changes to the master script
--   navigate to saved project location
--   open project (`pxd.Rproj`) in RStudio
+-   this would let you push changes to the master script
+-   in file explorer, navigate to saved project location
+-   open project `pxd.Rproj` - it should open in RStudio
 -   in bottom right panel, click on `scripts` then `process_procxed_to_access.R`
--   this will open in the main panel
+-   script will open in the upper left panel
 -   lines of code can be run by highlighting and pressing `Ctrl+Enter`
 
 process file
@@ -41,17 +41,17 @@ If this is the first time you have run this, you might need to install some pack
 
 ``` r
 # install packages
-install.packages(magrittr)
-install.packages(dplyr)
-install.packages(readr)
-install.packages(tidyr)
-install.packages(stringr)
-install.packages(janitor)
-install.packages(readxl)
-install.packages(lubridate)
-install.packages(tidylog)
-install.packages(fuzzyjoin)
-install.packages(glue)
+install.packages("magrittr")
+install.packages("dplyr")
+install.packages("readr")
+install.packages("tidyr")
+install.packages("stringr")
+install.packages("janitor")
+install.packages("readxl")
+install.packages("lubridate")
+install.packages("tidylog")
+install.packages("fuzzyjoin")
+install.packages("glue")
 ```
 
 Every time you open a new R session, you have to load the packages using `library()` function:
@@ -74,23 +74,28 @@ library(glue)
 define files/dates
 ------------------
 
-You need to change the file paths to match the file you just created:
+Barring any issues with missing help topics, these might be the only part of the script you need to change.
+
+`filename` should match the date (usually format Mon-YY) used for saving the ProcXed outputs.
 
 ``` r
-#define file name and path
+# use date in filename
 filename <- "Feb-20"
-location <- file.path("//path", "to", "procxed", "output")
 ```
 
-Usually location will be something like:
+You also need to define where the files are saved - usually location will be:
 
 ``` r
-location <- file.path("//F:", "PHI", "Publications", "Governance", "Pre Announcement", "Outputs", "2020")
+# Define filepaths
+location <- file.path("F:", "PHI", "Publications", "Governance", "Pre Announcement", "Outputs", "2020")
 ```
 
-Or you can define in full:
+Using `file.path()` makes it system independent.
+
+Or you can define it in full:
 
 ``` r
+# Define filepaths
 location <- "F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/"
 ```
 
@@ -394,7 +399,7 @@ new_pubs %>%
 clean up contact details
 ------------------------
 
-The website doesn't show email addresses so these are removed:
+The website doesn't show email addresses so these are removed using regular expressions (regex) and gsub. The `\r\n` characters are formatting hangovers from ProcXed where each contact is on a new line.
 
 ``` r
 # Remove the "\r\n" prefix from telephone numbers
@@ -523,11 +528,7 @@ new_pubs %<>%
 general formatting
 ------------------
 
-This adds extra columns for revised and rescheduled publications, adds html tags (
-<p>
-&
-</p>
-) to the synopsis, reformats the date and rearranges columns.
+This adds extra columns for revised and rescheduled publications, adds html tags (`<p>` & `</p>`) to the synopsis, reformats the date and rearranges columns.
 
 ``` r
 # Add rescheduled_to and revised columns as NA
