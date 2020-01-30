@@ -30,12 +30,11 @@ library(tidylog)
 library(fuzzyjoin)
 library(glue)
 
-# Define filepaths
 # use date in filename
 filename <- "Feb-20"
 
 #use one of these to define path
-location <- file.path("//path", "to", "procxed", "output")
+location <- file.path("F:", "PHI", "Publications", "Governance", "Pre Announcement", "Outputs", "2020")
 location <- "F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/"
 
 # Set limit for showing full date
@@ -48,11 +47,11 @@ lookup <- read_csv("data/ISD_lookup_topics.csv",
 ### 2 check new and changed dates ----
 
 #this comes from a different ProcXed report
+#load publications with changed dates
 date_changed <- read_xlsx(glue("{location}/ISD Dates Changed ",
-                               "{filename}.xlsx")) %>% 
+                               "{filename}.xlsx"), col_types = "text") %>% 
                 clean_names() %>% 
-                select(-statistics_type, -url_address)  
-                mutate(previous_publication_date = )
+                select(-producer_organisation, -statistics_type, -url_address)  
   
 date_changed <- date_changed %>% 
                 mutate(prev = if_else(is.na(ymd(previous_publication_date)), 
