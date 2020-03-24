@@ -2,10 +2,9 @@
 # Process ProcXed to Access
 # Graeme Gowans
 # October 2019
-# Latest update author - Calum Purdie
-# Latest update date - November 2019
-# Remove duplicate ED weekly pubs
-# Remove edition from pub titles
+# Latest update author - Graeme
+# Latest update date - March 2020
+# reflect simpler process for beta website
 # Extraction
 # R Studio Desktop
 # 3.5.1
@@ -38,22 +37,18 @@ location <- file.path("F:", "PHI", "Publications", "Governance", "Pre Announceme
 location <- "F:/PHI/Publications/Governance/Pre Announcement/Outputs/2020/"
 
 # Set limit for showing full date
-date_limit <- "2020-05-01"
+date_limit <- "2020-04-01"
 
-# Get lookup table
-lookup <- read_csv("data/ISD_lookup_topics.csv", 
-                   col_types = "cc")
 
 ### 2 check new and changed dates ----
 
 #this comes from a different ProcXed report
 #load publications with changed dates
+#clean col names, make new columns to parse dates for checking
 date_changed <- read_xlsx(glue("{location}/ISD Dates Changed ",
                                "{filename}.xlsx"), col_types = "text") %>% 
                 clean_names() %>% 
-                select(-producer_organisation, -statistics_type, -url_address)  
-  
-date_changed <- date_changed %>% 
+                select(-producer_organisation, -statistics_type, -url_address) %>%   
                 mutate(prev = if_else(is.na(ymd(previous_publication_date)), 
                                       dmy(paste0("01-", previous_publication_date)),
                                       ymd(previous_publication_date))) %>% 
@@ -81,9 +76,8 @@ new_pubs <- read_xlsx(glue("{location}/ISD Forthcoming Publications ",
                            "{filename}.xlsx"), col_types = "text") %>%
             rename(DatePublished = `Publication Date`, 
                    Title = `Publication Series`, 
-                   Synopsis = `Synopsis`, 
-                   ContactName = `Contact Details`) %>% 
-            select(DatePublished, Title, Synopsis, ContactName)
+                   Synopsis = `Synopsis`) %>% 
+            select(DatePublished, Title, Synopsis)
 
 ### 4 Formatting Dates ----
 
@@ -102,56 +96,17 @@ new_pubs %<>%
                                     DatePublished, 
                                     floor_date(DatePublished, unit = "month")))
 
+# might not be needed anymore?
 # If publication date is after date_limit then add 1 to NotSet
 # If publication date is before date_limit then leave blank
 new_pubs %<>% 
   mutate(NotSet = if_else(DatePublished < date_limit, "", "1"))
 
 #check all dates are Tuesday, show those that aren't
+#will need changed once HPS are included
 new_pubs %>% 
   mutate(day_of_week = wday(DatePublished, label = TRUE)) %>% 
   filter(DatePublished < date_limit & day_of_week != "Tue")
-
-### 5 Remove Emails ----
-
-# Remove the "\r\n" prefix from telephone numbers
-# Remove email addresses
-# Remove remaining "\r\n" text
-
-new_pubs %<>% 
-  mutate(ContactName = gsub("\r\ntel.", " tel.", ContactName)) %>% 
-  mutate(ContactName = gsub("\r\ne-mail: (?:.*?)\r\n", "", ContactName)) %>% 
-  mutate(ContactName = gsub("\r\n", " ", ContactName))
-
-### 6 Health Topic Lookup ----
-
-# Remove brackets from (CAMHS) for matching
-new_pubs %<>% mutate(Title = str_replace_all(Title, "\\(CAMHS\\)", "CAMHS"))
-
-# Fuzzy join by detecting string name
-new_pubs %<>% fuzzy_left_join(y = lookup, 
-                              by = c("Title" = "TitleCode"), 
-                              match_fun = str_detect)
-
-# Replace brackets for CAMHS
-new_pubs %<>% mutate(Title = str_replace_all(Title, "CAMHS", "\\(CAMHS\\)"))
-
-# count numbers per topic
-count(new_pubs, HealthTopic) %>% print(n = Inf)
-
-######### MANUALLY FIX MISSING HealthTopic VALUES ##############
-
-new_pubs %>% filter(is.na(HealthTopic)) %>% select(Title)
-
-#new topics to add
-topic_to_add <- tibble(TitleCode = "Title to add",
-                       HealthTopic = "Health-Topic")
-
-#add rows to lookup table
-lookup <- bind_rows(lookup, topic_to_add)
-
-#overwrite lookup table for next time
-write_csv(lookup, "data/ISD_lookup_topics.csv")
 
 ######### remember to rerun script to add new topics ##############
 
@@ -179,7 +134,7 @@ new_pubs %<>%
          Revised = NA, 
          Synopsis = glue("<p>{Synopsis}</p>"), 
          DatePublished = format(DatePublished, "%d/%m/%y")) %>% 
-  select(title_flag, DatePublished, Title, HealthTopic, Synopsis, ContactName, 
+  select(title_flag, DatePublished, Title, Synopsis, 
          RescheduledTo, Revised, NotSet)
 
 
@@ -190,12 +145,12 @@ new_pubs %<>%
 # ProcXed can run reports to show publications where dates 
 # have changed to highlight these
 
-rescheduled_pubs <- 
-  tibble(DatePublished = "DD/MM/YYYY",
+rescheduled_pubs <- tibble(
+          DatePublished = "DD/MM/YYYY",
           Title = "title_here",
           HealthTopic = "topic_here",
           Synopsis = "<p>synopsis_here</p>",
-          ContactName = paste0("analyst_1 tel. 123 456", 
+          ContactName = paste("analyst_1 tel. 123 456", 
                                "analyst_2 tel. 123 456"),
           RescheduledTo = "DD/MM/YYYY",
           Revised = NA, 
