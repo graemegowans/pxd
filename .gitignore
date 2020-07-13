@@ -2,8 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-/data/archived
-/data/email_addresses.csv
+/data/
 /output
 /scripts/archived
 /scripts/development
